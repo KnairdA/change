@@ -4,11 +4,16 @@
 
 #include <unistd.h>
 #include <dlfcn.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 
 #include <cstring>
 #include <iostream>
+#include <utility>
 #include <functional>
+#include <unordered_set>
+
+static std::unordered_set<std::string> tracked_files;
 
 template <class Result, typename... Arguments>
 std::function<Result(Arguments...)> get_real_function(
@@ -20,6 +25,10 @@ std::function<Result(Arguments...)> get_real_function(
 	std::memcpy(&real_function, &symbol_address, sizeof(symbol_address));
 
 	return std::function<Result(Arguments...)>(real_function);
+}
+
+void exit(int status) {
+	get_real_function<void, int>("exit")(status);
 }
 
 std::string get_file_name(int fd) {
@@ -45,32 +54,62 @@ bool is_regular_file(int fd) {
 	return S_ISREG(fd_stat.st_mode);
 }
 
-ssize_t read(int fd, void *buffer, size_t count) {
-	static auto real_read = get_real_function<ssize_t, int, void*, size_t>("read");
+bool is_tracked_file(const std::string& file_name) {
+	return tracked_files.find(file_name) != tracked_files.end();
+}
 
-	const ssize_t result = real_read(fd, buffer, count);
-
-	if ( is_regular_file(fd) ) {
-		std::cerr << "read size "
-		          << count
-		          << " of "
-		          << get_file_name(fd)
-		          << std::endl;
-	}
-
-	return result;
+bool track_file(const std::string& file_name) {
+	return tracked_files.emplace(file_name).second;
 }
 
 ssize_t write(int fd, const void* buffer, size_t count) {
 	static auto real_write = get_real_function<ssize_t, int, const void*, size_t>("write");
 
 	if ( is_regular_file(fd) ) {
-		std::cerr << "write size "
-		          << count
-		          << " to "
-		          << get_file_name(fd)
-		          << std::endl;
+		const std::string file_name{ get_file_name(fd) };
+
+		if ( !is_tracked_file(file_name) ) {
+			track_file(file_name);
+
+			std::cerr << "wrote to '" << file_name << "'" << std::endl;
+		}
 	}
 
 	return real_write(fd, buffer, count);
+}
+
+int rename(const char* old_path, const char* new_path) {
+	static auto real_rename = get_real_function<int, const char*, const char*>("rename");
+
+	std::cerr << "renamed '" << old_path << "' to '" << new_path << "'" << std::endl;
+
+	return real_rename(old_path, new_path);
+}
+
+int rmdir(const char* path) {
+	static auto real_rmdir = get_real_function<int, const char*>("rmdir");
+
+	std::cerr << "removed directory '" << path << "'" << std::endl;
+
+	return real_rmdir(path);
+}
+
+int unlink(const char* path) {
+	static auto real_unlink = get_real_function<int, const char*>("unlink");
+
+	std::cerr << "removed '" << path << "'" << std::endl;
+
+	return real_unlink(path);
+}
+
+int unlinkat(int dirfd, const char* path, int flags) {
+	static auto real_unlinkat = get_real_function<int, int, const char*, int>("unlinkat");
+
+	if ( dirfd == AT_FDCWD ) {
+		std::cerr << "removed '" << path << "'" << std::endl;
+	} else {
+		std::cerr << "removed '" << get_file_name(dirfd) << path << "'" << std::endl;
+	}
+
+	return real_unlinkat(dirfd, path, flags);
 }
