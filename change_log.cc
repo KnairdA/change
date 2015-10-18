@@ -7,13 +7,50 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+#include <ext/stdio_filebuf.h>
+
 #include <cstring>
 #include <iostream>
 #include <utility>
 #include <functional>
 #include <unordered_set>
+#include <memory>
+
+struct FileDescriptorGuard {
+	FileDescriptorGuard(const std::string& path) {
+		this->fd = open(path.c_str(), O_WRONLY | O_APPEND);
+
+		if ( !this->fd ) {
+			this->fd = STDERR_FILENO;
+		}
+	}
+
+	~FileDescriptorGuard() {
+		close(this->fd);
+	}
+
+	int fd;
+};
+
+class LogGuard {
+	public:
+		LogGuard(const int target_fd):
+			buffer(target_fd, std::ios::out),
+			stream(&this->buffer) { }
+
+		void append(const std::string& msg) {
+			this->stream << msg << std::endl;
+		}
+
+	private:
+		__gnu_cxx::stdio_filebuf<char> buffer;
+		std::ostream                   stream;
+};
 
 static std::unordered_set<std::string> tracked_files;
+
+static std::unique_ptr<FileDescriptorGuard> fd_guard;
+static std::unique_ptr<LogGuard>            log;
 
 template <class Result, typename... Arguments>
 std::function<Result(Arguments...)> get_real_function(
@@ -25,6 +62,16 @@ std::function<Result(Arguments...)> get_real_function(
 	std::memcpy(&real_function, &symbol_address, sizeof(symbol_address));
 
 	return std::function<Result(Arguments...)>(real_function);
+}
+
+void init() __attribute__ ((constructor));
+void init() {
+	if ( getenv("CHANGE_LOG_TARGET") != NULL ) {
+		fd_guard = std::make_unique<FileDescriptorGuard>(getenv("CHANGE_LOG_TARGET"));
+		log      = std::make_unique<LogGuard>(fd_guard->fd);
+	} else {
+		log      = std::make_unique<LogGuard>(STDERR_FILENO);
+	}
 }
 
 void exit(int status) {
@@ -71,7 +118,7 @@ ssize_t write(int fd, const void* buffer, size_t count) {
 		if ( !is_tracked_file(file_name) ) {
 			track_file(file_name);
 
-			std::cerr << "wrote to '" << file_name << "'" << std::endl;
+			log->append("wrote to '" + file_name + "'");
 		}
 	}
 
@@ -81,7 +128,7 @@ ssize_t write(int fd, const void* buffer, size_t count) {
 int rename(const char* old_path, const char* new_path) {
 	static auto real_rename = get_real_function<int, const char*, const char*>("rename");
 
-	std::cerr << "renamed '" << old_path << "' to '" << new_path << "'" << std::endl;
+	log->append("renamed '" + std::string(old_path) + "' to '" + std::string(new_path) + "'");
 
 	return real_rename(old_path, new_path);
 }
@@ -89,7 +136,7 @@ int rename(const char* old_path, const char* new_path) {
 int rmdir(const char* path) {
 	static auto real_rmdir = get_real_function<int, const char*>("rmdir");
 
-	std::cerr << "removed directory '" << path << "'" << std::endl;
+	log->append("removed directory '" + std::string(path) + "'");
 
 	return real_rmdir(path);
 }
@@ -97,7 +144,7 @@ int rmdir(const char* path) {
 int unlink(const char* path) {
 	static auto real_unlink = get_real_function<int, const char*>("unlink");
 
-	std::cerr << "removed '" << path << "'" << std::endl;
+	log->append("removed '" + std::string(path) + "'");
 
 	return real_unlink(path);
 }
@@ -106,9 +153,9 @@ int unlinkat(int dirfd, const char* path, int flags) {
 	static auto real_unlinkat = get_real_function<int, int, const char*, int>("unlinkat");
 
 	if ( dirfd == AT_FDCWD ) {
-		std::cerr << "removed '" << path << "'" << std::endl;
+		log->append("removed '" + std::string(path) + "'");
 	} else {
-		std::cerr << "removed '" << get_file_name(dirfd) << path << "'" << std::endl;
+		log->append("removed '" + get_file_name(dirfd) + path + "'");
 	}
 
 	return real_unlinkat(dirfd, path, flags);
