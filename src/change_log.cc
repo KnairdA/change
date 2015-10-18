@@ -2,6 +2,8 @@
 #define _GNU_SOURCE
 #endif
 
+#include <sys/mman.h>
+
 #include <memory>
 #include <functional>
 #include <unordered_set>
@@ -101,4 +103,20 @@ int unlinkat(int dirfd, const char* path, int flags) {
 	}
 
 	return real_unlinkat(dirfd, path, flags);
+}
+
+void* mmap(void* addr, size_t length, int prot, int flags, int fd, off_t offset) {
+	static auto real_mmap = get_real_function<void*, void*, size_t, int, int, int, off_t>("mmap");
+
+	if ( ( prot & PROT_WRITE ) && io::is_regular_file(fd) ) {
+		const std::string file_name{ io::get_file_name(fd) };
+
+		if ( !is_tracked_file(file_name) ) {
+			track_file(file_name);
+
+			log->append("mmap '" + file_name + "'");
+		}
+	}
+
+	return real_mmap(addr, length, prot, flags, fd, offset);
 }
