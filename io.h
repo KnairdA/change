@@ -10,20 +10,27 @@
 
 namespace io {
 
-struct FileDescriptorGuard {
-	FileDescriptorGuard(const std::string& path) {
-		this->fd = open(path.c_str(), O_WRONLY | O_APPEND);
+class FileDescriptorGuard {
+	public:
+		FileDescriptorGuard(const std::string& path) {
+			this->fd = open(path.c_str(), O_WRONLY | O_APPEND);
 
-		if ( !this->fd ) {
-			this->fd = STDERR_FILENO;
+			if ( !this->fd ) {
+				this->fd = STDERR_FILENO;
+			}
 		}
-	}
 
-	~FileDescriptorGuard() {
-		close(this->fd);
-	}
+		~FileDescriptorGuard() {
+			close(this->fd);
+		}
 
-	int fd;
+		operator int() {
+			return this->fd;
+		}
+
+	private:
+		int fd;
+
 };
 
 std::string get_file_name(int fd) {

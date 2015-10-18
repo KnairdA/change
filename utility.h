@@ -20,6 +20,7 @@ class Logger {
 	private:
 		__gnu_cxx::stdio_filebuf<char> buffer;
 		std::ostream                   stream;
+
 };
 
 }

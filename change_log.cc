@@ -33,7 +33,7 @@ void init() {
 		fd_guard = std::make_unique<io::FileDescriptorGuard>(
 			getenv("CHANGE_LOG_TARGET")
 		);
-		log      = std::make_unique<utility::Logger>(fd_guard->fd);
+		log      = std::make_unique<utility::Logger>(*fd_guard);
 	} else {
 		log      = std::make_unique<utility::Logger>(STDERR_FILENO);
 	}
