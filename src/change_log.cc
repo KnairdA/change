@@ -5,6 +5,7 @@
 #include <sys/mman.h>
 
 #include <memory>
+#include <algorithm>
 #include <functional>
 #include <unordered_set>
 
@@ -13,7 +14,7 @@
 
 static std::unique_ptr<std::unordered_set<std::string>> tracked_files;
 static std::unique_ptr<io::FileDescriptorGuard>         fd_guard;
-static std::unique_ptr<utility::Logger>                 log;
+static std::unique_ptr<utility::Logger>                 logger;
 
 template <class Result, typename... Arguments>
 std::function<Result(Arguments...)> get_real_function(
@@ -35,13 +36,15 @@ void init() {
 		fd_guard = std::make_unique<io::FileDescriptorGuard>(
 			getenv("CHANGE_LOG_TARGET")
 		);
-		log      = std::make_unique<utility::Logger>(*fd_guard);
+		logger   = std::make_unique<utility::Logger>(*fd_guard);
 	} else {
-		log      = std::make_unique<utility::Logger>(STDERR_FILENO);
+		logger   = std::make_unique<utility::Logger>(STDERR_FILENO);
 	}
 }
 
 void exit(int status) {
+	logger->append("exit");
+
 	get_real_function<void, int>("exit")(status);
 }
 
@@ -62,7 +65,7 @@ ssize_t write(int fd, const void* buffer, size_t count) {
 		if ( !is_tracked_file(file_name) ) {
 			track_file(file_name);
 
-			log->append("wrote to '" + file_name + "'");
+			logger->append("wrote to '" + file_name + "'");
 		}
 	}
 
@@ -72,7 +75,11 @@ ssize_t write(int fd, const void* buffer, size_t count) {
 int rename(const char* old_path, const char* new_path) {
 	static auto real_rename = get_real_function<int, const char*, const char*>("rename");
 
-	log->append("renamed '" + std::string(old_path) + "' to '" + std::string(new_path) + "'");
+	if ( !is_tracked_file(old_path) ) {
+		track_file(old_path);
+	}
+
+	logger->append("renamed '" + std::string(old_path) + "' to '" + std::string(new_path) + "'");
 
 	return real_rename(old_path, new_path);
 }
@@ -80,7 +87,7 @@ int rename(const char* old_path, const char* new_path) {
 int rmdir(const char* path) {
 	static auto real_rmdir = get_real_function<int, const char*>("rmdir");
 
-	log->append("removed directory '" + std::string(path) + "'");
+	logger->append("removed directory '" + std::string(path) + "'");
 
 	return real_rmdir(path);
 }
@@ -88,7 +95,7 @@ int rmdir(const char* path) {
 int unlink(const char* path) {
 	static auto real_unlink = get_real_function<int, const char*>("unlink");
 
-	log->append("removed '" + std::string(path) + "'");
+	logger->append("removed '" + std::string(path) + "'");
 
 	return real_unlink(path);
 }
@@ -97,9 +104,9 @@ int unlinkat(int dirfd, const char* path, int flags) {
 	static auto real_unlinkat = get_real_function<int, int, const char*, int>("unlinkat");
 
 	if ( dirfd == AT_FDCWD ) {
-		log->append("removed '" + std::string(path) + "'");
+		logger->append("removed '" + std::string(path) + "'");
 	} else {
-		log->append("removed '" + io::get_file_name(dirfd) + path + "'");
+		logger->append("removed '" + io::get_file_name(dirfd) + path + "'");
 	}
 
 	return real_unlinkat(dirfd, path, flags);
@@ -114,7 +121,7 @@ void* mmap(void* addr, size_t length, int prot, int flags, int fd, off_t offset)
 		if ( !is_tracked_file(file_name) ) {
 			track_file(file_name);
 
-			log->append("mmap '" + file_name + "'");
+			logger->append("mmap '" + file_name + "'");
 		}
 	}
 
