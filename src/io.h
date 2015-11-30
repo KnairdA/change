@@ -1,5 +1,5 @@
-#ifndef CHANGE_IO_H_
-#define CHANGE_IO_H_
+#ifndef CHANGE_SRC_IO_H_
+#define CHANGE_SRC_IO_H_
 
 #include <unistd.h>
 #include <dlfcn.h>
@@ -58,4 +58,4 @@ bool is_regular_file(int fd) {
 
 }
 
-#endif  // CHANGE_IO_H_
+#endif  // CHANGE_SRC_IO_H_

@@ -1,5 +1,5 @@
-#ifndef CHANGE_UTILITY_H_
-#define CHANGE_UTILITY_H_
+#ifndef CHANGE_SRC_UTILITY_H_
+#define CHANGE_SRC_UTILITY_H_
 
 #include <ext/stdio_filebuf.h>
 
@@ -25,4 +25,4 @@ class Logger {
 
 }
 
-#endif  // CHANGE_UTILITY_H_
+#endif  // CHANGE_SRC_UTILITY_H_
