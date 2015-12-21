@@ -56,6 +56,13 @@ bool is_regular_file(int fd) {
 	return S_ISREG(fd_stat.st_mode);
 }
 
+bool is_regular_file(const char* path) {
+	struct stat fd_stat;
+	lstat(path, &fd_stat);
+
+	return S_ISREG(fd_stat.st_mode);
+}
+
 }
 
 #endif  // CHANGE_SRC_IO_H_

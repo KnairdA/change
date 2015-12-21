@@ -29,14 +29,14 @@ void init() {
 }
 
 void exit(int status) {
-	__attribute__((__noreturn__)) void(*real_exit)(int) = nullptr;
+	__attribute__((__noreturn__)) void(*actual_exit)(int) = nullptr;
 	const void* symbol_address = dlsym(RTLD_NEXT, "exit");
 
-	std::memcpy(&real_exit, &symbol_address, sizeof(symbol_address));
+	std::memcpy(&actual_exit, &symbol_address, sizeof(symbol_address));
 
 	logger->append("exit");
 
-	real_exit(status);
+	actual_exit(status);
 }
 
 bool is_tracked_file(const std::string& file_name) {
@@ -78,7 +78,9 @@ int rmdir(const char* path) {
 }
 
 int unlink(const char* path) {
-	logger->append("removed '" + std::string(path) + "'");
+	if ( io::is_regular_file(path) ) {
+		logger->append("rm '" + std::string(path) + "'");
+	}
 
 	return actual::unlink(path);
 }
