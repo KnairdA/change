@@ -1,13 +1,13 @@
-#ifndef CHANGE_SRC_CHANGE_TRACKER_H_
-#define CHANGE_SRC_CHANGE_TRACKER_H_
-
-#include "utility.h"
+#ifndef CHANGE_SRC_TRACKING_CHANGE_TRACKER_H_
+#define CHANGE_SRC_TRACKING_CHANGE_TRACKER_H_
 
 #include <unordered_map>
 
 #include <boost/process.hpp>
 
-namespace utility {
+#include "utility/logger.h"
+
+namespace tracking {
 
 class ChangeTracker {
 	public:
@@ -29,4 +29,4 @@ class ChangeTracker {
 
 }
 
-#endif  // CHANGE_SRC_CHANGE_TRACKER_H_
+#endif  // CHANGE_SRC_TRACKING_CHANGE_TRACKER_H_

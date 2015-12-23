@@ -5,19 +5,20 @@
 #include <algorithm>
 #include <functional>
 
-#include "io.h"
-#include "utility.h"
 #include "actual_function.h"
-#include "change_tracker.h"
 
-static std::unique_ptr<io::FileDescriptorGuard> fd_guard;
-static std::unique_ptr<utility::Logger>         logger;
-static std::unique_ptr<utility::ChangeTracker>  tracker;
+#include "utility/io.h"
+#include "utility/logger.h"
+#include "tracking/change_tracker.h"
+
+static std::unique_ptr<utility::FileDescriptorGuard> fd_guard;
+static std::unique_ptr<utility::Logger>              logger;
+static std::unique_ptr<tracking::ChangeTracker>      tracker;
 
 void init() __attribute__ ((constructor));
 void init() {
 	if ( getenv("CHANGE_LOG_TARGET") != NULL ) {
-		fd_guard = std::make_unique<io::FileDescriptorGuard>(
+		fd_guard = std::make_unique<utility::FileDescriptorGuard>(
 			getenv("CHANGE_LOG_TARGET")
 		);
 		logger   = std::make_unique<utility::Logger>(*fd_guard);
@@ -25,7 +26,7 @@ void init() {
 		logger   = std::make_unique<utility::Logger>(STDERR_FILENO);
 	}
 
-	tracker = std::make_unique<utility::ChangeTracker>(logger.get());
+	tracker = std::make_unique<tracking::ChangeTracker>(logger.get());
 }
 
 void exit(int status) {
@@ -40,8 +41,8 @@ void exit(int status) {
 }
 
 ssize_t write(int fd, const void* buffer, size_t count) {
-	if ( io::is_regular_file(fd) ) {
-		const std::string file_name{ io::get_file_name(fd) };
+	if ( utility::is_regular_file(fd) ) {
+		const std::string file_name{ utility::get_file_name(fd) };
 
 		if ( !tracker->is_tracked(file_name) ) {
 			tracker->track(file_name);
@@ -68,7 +69,7 @@ int rmdir(const char* path) {
 }
 
 int unlink(const char* path) {
-	if ( io::is_regular_file(path) ) {
+	if ( utility::is_regular_file(path) ) {
 		logger->append("rm '" + std::string(path) + "'");
 	}
 
@@ -79,15 +80,15 @@ int unlinkat(int dirfd, const char* path, int flags) {
 	if ( dirfd == AT_FDCWD ) {
 		logger->append("removed '" + std::string(path) + "'");
 	} else {
-		logger->append("removed '" + io::get_file_name(dirfd) + path + "'");
+		logger->append("removed '" + utility::get_file_name(dirfd) + path + "'");
 	}
 
 	return actual::unlinkat(dirfd, path, flags);
 }
 
 void* mmap(void* addr, size_t length, int prot, int flags, int fd, off_t offset) {
-	if ( ( prot & PROT_WRITE ) && io::is_regular_file(fd) ) {
-		const std::string file_name{ io::get_file_name(fd) };
+	if ( ( prot & PROT_WRITE ) && utility::is_regular_file(fd) ) {
+		const std::string file_name{ utility::get_file_name(fd) };
 
 		if ( !tracker->is_tracked(file_name) ) {
 			tracker->track(file_name);

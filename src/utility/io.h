@@ -1,5 +1,5 @@
-#ifndef CHANGE_SRC_IO_H_
-#define CHANGE_SRC_IO_H_
+#ifndef CHANGE_SRC_UTILITY_IO_H_
+#define CHANGE_SRC_UTILITY_IO_H_
 
 #include <unistd.h>
 #include <dlfcn.h>
@@ -8,28 +8,28 @@
 
 #include <cstring>
 
-namespace io {
+namespace utility {
 
 class FileDescriptorGuard {
 	public:
 		FileDescriptorGuard(const std::string& path) {
-			this->fd = open(path.c_str(), O_CREAT | O_WRONLY | O_APPEND);
+			this->fd_ = open(path.c_str(), O_CREAT | O_WRONLY | O_APPEND);
 
-			if ( !this->fd ) {
-				this->fd = STDERR_FILENO;
+			if ( !this->fd_ ) {
+				this->fd_ = STDERR_FILENO;
 			}
 		}
 
 		~FileDescriptorGuard() {
-			close(this->fd);
+			close(this->fd_);
 		}
 
 		operator int() {
-			return this->fd;
+			return this->fd_;
 		}
 
 	private:
-		int fd;
+		int fd_;
 
 };
 
@@ -65,4 +65,4 @@ bool is_regular_file(const char* path) {
 
 }
 
-#endif  // CHANGE_SRC_IO_H_
+#endif  // CHANGE_SRC_UTILITY_IO_H_

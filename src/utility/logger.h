@@ -1,5 +1,5 @@
-#ifndef CHANGE_SRC_UTILITY_H_
-#define CHANGE_SRC_UTILITY_H_
+#ifndef CHANGE_SRC_LOGGER_H_
+#define CHANGE_SRC_LOGGER_H_
 
 #include <ext/stdio_filebuf.h>
 
@@ -13,7 +13,7 @@ class Logger {
 	public:
 		Logger(const int target_fd):
 			buffer_(target_fd, std::ios::out),
-			stream_(&this->buffer) { }
+			stream_(&this->buffer_) { }
 
 		void append(const std::string& msg) {
 			this->stream_ << msg << std::endl;
@@ -27,7 +27,7 @@ class Logger {
 		// flag.
 		//
 		void forward(boost::process::pistream& stream) {
-			this->stream << std::string(
+			this->stream_ << std::string(
 				(std::istreambuf_iterator<char>(stream)),
 				(std::istreambuf_iterator<char>())
 			);
@@ -41,4 +41,4 @@ class Logger {
 
 }
 
-#endif  // CHANGE_SRC_UTILITY_H_
+#endif  // CHANGE_SRC_LOGGER_H_

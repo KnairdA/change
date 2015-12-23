@@ -1,7 +1,5 @@
 #include "change_tracker.h"
 
-#include <sstream>
-
 #include <boost/optional.hpp>
 #include <boost/filesystem/fstream.hpp>
 
@@ -12,7 +10,7 @@ constexpr unsigned int EMPLACE_SUCCESS = 1;
 constexpr unsigned int FILE_NAME       = 0;
 constexpr unsigned int DIFF_PROCESS    = 1;
 
-boost::process::context createContext() {
+boost::process::context getDefaultContext() {
 	boost::process::context context;
 
 	context.environment     = boost::process::self::get_environment();
@@ -24,7 +22,7 @@ boost::process::context createContext() {
 
 }
 
-namespace utility {
+namespace tracking {
 
 ChangeTracker::ChangeTracker(utility::Logger* logger):
 	logger_(logger),
@@ -54,7 +52,7 @@ bool ChangeTracker::is_tracked(const std::string& file_path) const {
 // is structured in the following sequence:
 //
 // diff -p - $file_path
-// 
+//
 // This means that reading the final file contents is delegated to
 // `diff` while the initial file contents are read by this method
 // and written to `diff`'s standard input.
@@ -72,7 +70,7 @@ bool ChangeTracker::track(const std::string& file_path) {
 	auto result = this->children_.emplace(
 		file_path,
 		std::make_unique<boost::process::child>(
-			boost::process::launch_shell("diff -p - " + file_name, createContext())
+			boost::process::launch_shell("diff -p - " + file_path, getDefaultContext())
 		)
 	);
 
