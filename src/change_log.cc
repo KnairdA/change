@@ -2,9 +2,6 @@
 #define _GNU_SOURCE
 #endif
 
-#include <algorithm>
-#include <functional>
-
 #include "actual_function.h"
 
 #include "utility/io.h"
