@@ -10,4 +10,15 @@ include_directories(
 	src/
 )
 
-add_library(ChangeLog SHARED src/change_log.cc)
+add_library(
+	ChangeLog
+	SHARED
+	src/change_log.cc
+	src/change_tracker.cc
+)
+
+target_link_libraries(
+	ChangeLog
+	boost_system
+	boost_filesystem
+)
