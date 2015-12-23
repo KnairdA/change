@@ -29,17 +29,6 @@ void init() {
 	tracker = std::make_unique<tracking::ChangeTracker>(logger.get());
 }
 
-void exit(int status) {
-	__attribute__((__noreturn__)) void(*actual_exit)(int) = nullptr;
-	const void* symbol_address = dlsym(RTLD_NEXT, "exit");
-
-	std::memcpy(&actual_exit, &symbol_address, sizeof(symbol_address));
-
-	logger->append("exit");
-
-	actual_exit(status);
-}
-
 ssize_t write(int fd, const void* buffer, size_t count) {
 	if ( utility::is_regular_file(fd) ) {
 		const std::string file_name{ utility::get_file_name(fd) };
