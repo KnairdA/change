@@ -24,9 +24,13 @@ boost::process::context getDefaultContext() {
 
 namespace tracking {
 
-ChangeTracker::ChangeTracker(utility::Logger* logger):
+ChangeTracker::ChangeTracker(utility::Logger* logger, const std::string& diff_cmd):
+	diff_cmd_(diff_cmd),
 	logger_(logger),
 	children_() { }
+
+ChangeTracker::ChangeTracker(utility::Logger* logger):
+	ChangeTracker(logger, "diff -p") { }
 
 ChangeTracker::~ChangeTracker() {
 	for ( auto&& tracked : this->children_ ) {
@@ -70,7 +74,10 @@ bool ChangeTracker::track(const std::string& file_path) {
 	auto result = this->children_.emplace(
 		file_path,
 		std::make_unique<boost::process::child>(
-			boost::process::launch_shell("diff -p - " + file_path, getDefaultContext())
+			boost::process::launch_shell(
+				this->diff_cmd_ + " - " + file_path,
+				getDefaultContext()
+			)
 		)
 	);
 

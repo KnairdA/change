@@ -11,6 +11,7 @@ namespace tracking {
 
 class ChangeTracker {
 	public:
+		ChangeTracker(utility::Logger*, const std::string&);
 		ChangeTracker(utility::Logger*);
 		~ChangeTracker();
 
@@ -19,6 +20,7 @@ class ChangeTracker {
 		bool track(const std::string&);
 
 	private:
+		const std::string      diff_cmd_;
 		utility::Logger* const logger_;
 
 		std::unordered_map<

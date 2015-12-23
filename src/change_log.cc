@@ -23,7 +23,13 @@ void init() {
 		logger   = std::make_unique<utility::Logger>(STDERR_FILENO);
 	}
 
-	tracker = std::make_unique<tracking::ChangeTracker>(logger.get());
+	if ( getenv("CHANGE_LOG_DIFF_CMD") != NULL ) {
+		tracker = std::make_unique<tracking::ChangeTracker>(
+			logger.get(), getenv("CHANGE_LOG_DIFF_CMD")
+		);
+	} else {
+		tracker = std::make_unique<tracking::ChangeTracker>(logger.get());
+	}
 }
 
 ssize_t write(int fd, const void* buffer, size_t count) {
