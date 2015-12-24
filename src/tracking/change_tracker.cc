@@ -20,6 +20,11 @@ boost::process::context getDefaultContext() {
 	return context;
 }
 
+std::string getDiffCommand(
+	const std::string& diff_cmd, const std::string& full_path) {
+	return diff_cmd +  " --label " + full_path + " - " + full_path;
+}
+
 }
 
 namespace tracking {
@@ -73,11 +78,15 @@ bool ChangeTracker::is_tracked(const std::string& file_path) const {
 //    file provided if the second file argument is standard input
 //
 bool ChangeTracker::track(const std::string& file_path) {
+	const std::string full_file_path{
+		boost::filesystem::canonical(file_path).string()
+	};
+
 	auto result = this->children_.emplace(
-		boost::filesystem::canonical(file_path).string(),
+		full_file_path,
 		std::make_unique<boost::process::child>(
 			boost::process::launch_shell(
-				this->diff_cmd_ + " - " + file_path,
+				getDiffCommand(this->diff_cmd_, full_file_path),
 				getDefaultContext()
 			)
 		)
