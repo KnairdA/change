@@ -30,7 +30,7 @@ ChangeTracker::ChangeTracker(utility::Logger* logger, const std::string& diff_cm
 	children_() { }
 
 ChangeTracker::ChangeTracker(utility::Logger* logger):
-	ChangeTracker(logger, "diff -p") { }
+	ChangeTracker(logger, "diff -u") { }
 
 ChangeTracker::~ChangeTracker() {
 	for ( auto&& tracked : this->children_ ) {
@@ -43,7 +43,9 @@ ChangeTracker::~ChangeTracker() {
 }
 
 bool ChangeTracker::is_tracked(const std::string& file_path) const {
-	return this->children_.find(file_path) != this->children_.end();
+	return this->children_.find(
+		boost::filesystem::canonical(file_path).string()
+	) != this->children_.end();
 }
 
 // Begins tracking changes to a file reachable by a given path
@@ -72,7 +74,7 @@ bool ChangeTracker::is_tracked(const std::string& file_path) const {
 //
 bool ChangeTracker::track(const std::string& file_path) {
 	auto result = this->children_.emplace(
-		file_path,
+		boost::filesystem::canonical(file_path).string(),
 		std::make_unique<boost::process::child>(
 			boost::process::launch_shell(
 				this->diff_cmd_ + " - " + file_path,
