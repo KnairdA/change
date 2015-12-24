@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-export LD_PRELOAD=/usr/lib/libChangeLog.so
+export LD_PRELOAD=libChangeLog.so
 export CHANGE_LOG_TARGET="/tmp/$(basename $0).$$.tmp"
 
 eval "$1"

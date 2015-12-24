@@ -22,3 +22,17 @@ target_link_libraries(
 	boost_system
 	boost_filesystem
 )
+
+install(
+	PROGRAMS
+	change
+	DESTINATION
+	bin
+)
+
+install(
+	TARGETS
+	ChangeLog
+	LIBRARY DESTINATION
+	lib
+)
