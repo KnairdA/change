@@ -43,7 +43,7 @@ ChangeTracker::~ChangeTracker() {
 
 		this->logger_->forward(std::get<DIFF_PROCESS>(tracked)->get_stdout());
 
-		tracked.second->wait();
+		std::get<DIFF_PROCESS>(tracked)->wait();
 	}
 }
 

@@ -33,7 +33,7 @@ void init() {
 }
 
 ssize_t write(int fd, const void* buffer, size_t count) {
-	if ( utility::is_regular_file(fd) ) {
+	if ( fd != *fd_guard && utility::is_regular_file(fd) ) {
 		const std::string file_name{ utility::get_file_name(fd) };
 
 		if ( !tracker->is_tracked(file_name) ) {
