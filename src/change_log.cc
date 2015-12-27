@@ -62,7 +62,7 @@ int rmdir(const char* path) {
 
 int unlink(const char* path) {
 	if ( utility::is_regular_file(path) ) {
-		logger->append("rm '" + std::string(path) + "'");
+		logger->append("remove '" + std::string(path) + "'");
 	}
 
 	return actual::unlink(path);

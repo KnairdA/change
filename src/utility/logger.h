@@ -5,8 +5,6 @@
 
 #include <boost/process.hpp>
 
-#include <iostream>
-
 namespace utility {
 
 class Logger {

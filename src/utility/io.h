@@ -13,7 +13,7 @@ namespace utility {
 class FileDescriptorGuard {
 	public:
 		FileDescriptorGuard(const std::string& path) {
-			this->fd_ = open(path.c_str(), O_CREAT | O_WRONLY | O_APPEND);
+			this->fd_ = open(path.c_str(), O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
 
 			if ( !this->fd_ ) {
 				this->fd_ = STDERR_FILENO;
