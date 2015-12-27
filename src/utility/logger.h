@@ -1,6 +1,8 @@
 #ifndef CHANGE_SRC_LOGGER_H_
 #define CHANGE_SRC_LOGGER_H_
 
+#include <mutex>
+
 #include <ext/stdio_filebuf.h>
 
 #include <boost/process.hpp>
@@ -14,6 +16,8 @@ class Logger {
 			stream_(&this->buffer_) { }
 
 		void append(const std::string& msg) {
+			std::lock_guard<std::mutex> guard(this->write_mutex_);
+
 			this->stream_ << msg << std::endl;
 		}
 
@@ -25,6 +29,8 @@ class Logger {
 		// flag.
 		//
 		void forward(boost::process::pistream& stream) {
+			std::lock_guard<std::mutex> guard(this->write_mutex_);
+
 			this->stream_ << std::string(
 				(std::istreambuf_iterator<char>(stream)),
 				(std::istreambuf_iterator<char>())
@@ -34,6 +40,7 @@ class Logger {
 	private:
 		__gnu_cxx::stdio_filebuf<char> buffer_;
 		std::ostream                   stream_;
+		std::mutex                     write_mutex_;
 
 };
 

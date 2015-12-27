@@ -82,6 +82,8 @@ bool ChangeTracker::track(const std::string& file_path) {
 		boost::filesystem::canonical(file_path).string()
 	};
 
+	std::unique_lock<std::mutex> guard(this->write_mutex_);
+
 	auto result = this->children_.emplace(
 		full_file_path,
 		std::make_unique<boost::process::child>(
@@ -91,6 +93,8 @@ bool ChangeTracker::track(const std::string& file_path) {
 			)
 		)
 	);
+
+	guard.unlock();
 
 	if ( std::get<EMPLACE_SUCCESS>(result) ) {
 		boost::filesystem::ifstream file(

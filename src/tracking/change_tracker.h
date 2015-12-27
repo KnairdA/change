@@ -2,6 +2,7 @@
 #define CHANGE_SRC_TRACKING_CHANGE_TRACKER_H_
 
 #include <unordered_map>
+#include <mutex>
 
 #include <boost/process.hpp>
 
@@ -22,6 +23,7 @@ class ChangeTracker {
 	private:
 		const std::string      diff_cmd_;
 		utility::Logger* const logger_;
+		std::mutex             write_mutex_;
 
 		std::unordered_map<
 			std::string, std::unique_ptr<boost::process::child>
