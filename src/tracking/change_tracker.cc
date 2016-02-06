@@ -7,7 +7,7 @@ namespace {
 
 // constants for increasing pair access readability
 constexpr unsigned int EMPLACE_SUCCESS = 1;
-constexpr unsigned int FILE_NAME       = 0;
+constexpr unsigned int FILE_PATH       = 0;
 constexpr unsigned int FILE_CONTENT    = 1;
 
 boost::process::context getDefaultContext() {
@@ -48,19 +48,23 @@ ChangeTracker::ChangeTracker(utility::Logger* logger):
 
 ChangeTracker::~ChangeTracker() {
 	for ( auto&& tracked : this->children_ ) {
-		boost::process::child diffProcess{
-			boost::process::launch_shell(
-				getDiffCommand(this->diff_cmd_, std::get<FILE_NAME>(tracked)),
-				getDefaultContext()
-			)
-		};
+		const auto& tracked_path = std::get<FILE_PATH>(tracked);
 
-		diffProcess.get_stdin() << std::get<FILE_CONTENT>(tracked)->rdbuf();
-		diffProcess.get_stdin().close();
+		if ( boost::filesystem::exists(tracked_path) ) {
+			boost::process::child diffProcess{
+				boost::process::launch_shell(
+					getDiffCommand(this->diff_cmd_, tracked_path),
+					getDefaultContext()
+				)
+			};
 
-		this->logger_->forward(diffProcess.get_stdout());
+			diffProcess.get_stdin() << std::get<FILE_CONTENT>(tracked)->rdbuf();
+			diffProcess.get_stdin().close();
 
-		diffProcess.wait();
+			this->logger_->forward(diffProcess.get_stdout());
+
+			diffProcess.wait();
+		}
 	}
 }
 
@@ -83,7 +87,7 @@ bool ChangeTracker::is_tracked(const std::string& file_path) const {
 // reading the file from permanent storage. e.g. it opens all relevant
 // file descriptors at launch and only reads the first block of the
 // file contents until more is required. This leads to problems when
-// the tracked file is modified after `diff` has been spawned. 
+// the tracked file is modified after `diff` has been spawned.
 //
 bool ChangeTracker::track(const std::string& file_path) {
 	const std::string full_file_path{
@@ -101,7 +105,7 @@ bool ChangeTracker::track(const std::string& file_path) {
 
 	if ( std::get<EMPLACE_SUCCESS>(result) ) {
 		boost::filesystem::ifstream file(
-			std::get<FILE_NAME>(*result.first)
+			std::get<FILE_PATH>(*result.first)
 		);
 
 		if ( file.is_open() ) {
