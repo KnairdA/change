@@ -1,10 +1,9 @@
 #ifndef CHANGE_SRC_TRACKING_CHANGE_TRACKER_H_
 #define CHANGE_SRC_TRACKING_CHANGE_TRACKER_H_
 
-#include <unordered_map>
 #include <mutex>
-
-#include <boost/process.hpp>
+#include <sstream>
+#include <unordered_map>
 
 #include "utility/logger.h"
 
@@ -26,7 +25,7 @@ class ChangeTracker {
 		std::mutex             write_mutex_;
 
 		std::unordered_map<
-			std::string, std::unique_ptr<boost::process::child>
+			std::string, std::unique_ptr<std::stringstream>
 		> children_;
 
 };

@@ -8,7 +8,7 @@ namespace {
 // constants for increasing pair access readability
 constexpr unsigned int EMPLACE_SUCCESS = 1;
 constexpr unsigned int FILE_NAME       = 0;
-constexpr unsigned int DIFF_PROCESS    = 1;
+constexpr unsigned int FILE_CONTENT    = 1;
 
 boost::process::context getDefaultContext() {
 	boost::process::context context;
@@ -20,6 +20,15 @@ boost::process::context getDefaultContext() {
 	return context;
 }
 
+// Build `diff` command to be used to display the tracked changes in a
+// human readable fashion.
+//
+// As the original file contents are read by this library and forwarded
+// to `diff` via its standard input the command has to be structured as
+// follows:
+//
+//   diff -u --label $file_path - $file_path
+//
 std::string getDiffCommand(
 	const std::string& diff_cmd, const std::string& full_path) {
 	return diff_cmd +  " --label " + full_path + " - " + full_path;
@@ -39,11 +48,19 @@ ChangeTracker::ChangeTracker(utility::Logger* logger):
 
 ChangeTracker::~ChangeTracker() {
 	for ( auto&& tracked : this->children_ ) {
-		std::get<DIFF_PROCESS>(tracked)->get_stdin().close();
+		boost::process::child diffProcess{
+			boost::process::launch_shell(
+				getDiffCommand(this->diff_cmd_, std::get<FILE_NAME>(tracked)),
+				getDefaultContext()
+			)
+		};
 
-		this->logger_->forward(std::get<DIFF_PROCESS>(tracked)->get_stdout());
+		diffProcess.get_stdin() << std::get<FILE_CONTENT>(tracked)->rdbuf();
+		diffProcess.get_stdin().close();
 
-		std::get<DIFF_PROCESS>(tracked)->wait();
+		this->logger_->forward(diffProcess.get_stdout());
+
+		diffProcess.wait();
 	}
 }
 
@@ -55,27 +72,18 @@ bool ChangeTracker::is_tracked(const std::string& file_path) const {
 
 // Begins tracking changes to a file reachable by a given path
 //
-// The actual tracking is performed by a `diff` instance that is
-// spawned by this method and managed by this class.
-// As `diff` is called as a new subprocess and because there is no
-// straight forward way for checking / enforcing if it has already
-// completed reading the initial contents of the file the command
-// is structured in the following sequence:
+// _Tracking_ consists of adding the full file path to the `children_`
+// map and reading the full pre-change file contents into the mapped
+// `std::stringstream` instance.
 //
-// diff -p - $file_path
-//
-// This means that reading the final file contents is delegated to
-// `diff` while the initial file contents are read by this method
-// and written to `diff`'s standard input.
-//
-// If the `-` and `$file_path` arguments were exchanged there would
-// be no way to:
-//  - be sure the initial contents are read before the changing
-//    syscall that triggered this tracking in the first place is
-//    performed
-//  - be sure that the initial file contents are read completly
-//    as `diff` seemingly only reads the first block of the first
-//    file provided if the second file argument is standard input
+// This seems to be the most workable of various tested approaches
+// to providing `diff` with proper input in all circumstances. Leaving
+// the intermediate preservation of the original file content to
+// `diff` sadly failed randomly as it is _too intelligent_ in actually
+// reading the file from permanent storage. e.g. it opens all relevant
+// file descriptors at launch and only reads the first block of the
+// file contents until more is required. This leads to problems when
+// the tracked file is modified after `diff` has been spawned. 
 //
 bool ChangeTracker::track(const std::string& file_path) {
 	const std::string full_file_path{
@@ -86,12 +94,7 @@ bool ChangeTracker::track(const std::string& file_path) {
 
 	auto result = this->children_.emplace(
 		full_file_path,
-		std::make_unique<boost::process::child>(
-			boost::process::launch_shell(
-				getDiffCommand(this->diff_cmd_, full_file_path),
-				getDefaultContext()
-			)
-		)
+		std::make_unique<std::stringstream>()
 	);
 
 	guard.unlock();
@@ -102,7 +105,8 @@ bool ChangeTracker::track(const std::string& file_path) {
 		);
 
 		if ( file.is_open() ) {
-			std::get<DIFF_PROCESS>(*result.first)->get_stdin() << file.rdbuf();
+			*std::get<FILE_CONTENT>(*result.first) << file.rdbuf();
+			std::get<FILE_CONTENT>(*result.first)->sync();
 		}
 
 		return true;
