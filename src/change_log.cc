@@ -44,6 +44,18 @@ ssize_t write(int fd, const void* buffer, size_t count) {
 	return actual::write(fd, buffer, count);
 }
 
+ssize_t writev(int fd, const iovec* iov, int iovcnt) {
+	if ( fd != *fd_guard && utility::is_regular_file(fd) ) {
+		const std::string file_name{ utility::get_file_name(fd) };
+
+		if ( !tracker->is_tracked(file_name) ) {
+			tracker->track(file_name);
+		}
+	}
+
+	return actual::writev(fd, iov, iovcnt);
+}
+
 int rename(const char* old_path, const char* new_path) {
 	if ( !tracker->is_tracked(old_path) ) {
 		tracker->track(old_path);

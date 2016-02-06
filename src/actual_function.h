@@ -7,6 +7,7 @@
 
 #include <dlfcn.h>
 #include <sys/mman.h>
+#include <sys/uio.h>
 
 #include <memory>
 #include <cstring>
@@ -30,6 +31,11 @@ namespace actual {
 		ssize_t,
 		int, const void*, size_t
 	>("write");
+
+	static auto writev = get_actual_function<
+		ssize_t,
+		int, const iovec*, int
+	>("writev");
 
 	static auto rename = get_actual_function<
 		int,
