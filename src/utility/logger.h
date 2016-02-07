@@ -10,15 +10,21 @@
 namespace utility {
 
 class Logger {
+	#define FOR_EACH_ARGUMENT(...)\
+	auto&& tmp = { (__VA_ARGS__, 0)... }; (void) tmp;
+
 	public:
 		Logger(const int target_fd):
 			buffer_(target_fd, std::ios::out),
 			stream_(&this->buffer_) { }
 
-		void append(const std::string& msg) {
+		template <typename... Args>
+		void append(const Args&... args) {
 			std::lock_guard<std::mutex> guard(this->write_mutex_);
 
-			this->stream_ << msg << std::endl;
+			FOR_EACH_ARGUMENT(this->stream_ << args);
+
+			this->stream_ << std::endl;
 		}
 
 		// Forward the contents of a given standard output stream to the log target
@@ -42,6 +48,7 @@ class Logger {
 		std::ostream                   stream_;
 		std::mutex                     write_mutex_;
 
+	#undef FOR_EACH_ARGUMENT
 };
 
 }

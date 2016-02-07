@@ -61,20 +61,20 @@ int rename(const char* old_path, const char* new_path) {
 		tracker->track(old_path);
 	}
 
-	logger->append("renamed '" + std::string(old_path) + "' to '" + std::string(new_path) + "'");
+	logger->append("renamed '", old_path, "' to '", new_path, "'");
 
 	return actual::rename(old_path, new_path);
 }
 
 int rmdir(const char* path) {
-	logger->append("removed directory '" + std::string(path) + "'");
+	logger->append("removed directory '", path, "'");
 
 	return actual::rmdir(path);
 }
 
 int unlink(const char* path) {
 	if ( utility::is_regular_file(path) ) {
-		logger->append("remove '" + std::string(path) + "'");
+		logger->append("remove '", path, "'");
 	}
 
 	return actual::unlink(path);
@@ -82,9 +82,9 @@ int unlink(const char* path) {
 
 int unlinkat(int dirfd, const char* path, int flags) {
 	if ( dirfd == AT_FDCWD ) {
-		logger->append("removed '" + std::string(path) + "'");
+		logger->append("removed '", path, "'");
 	} else {
-		logger->append("removed '" + utility::get_file_name(dirfd) + path + "'");
+		logger->append("removed '", utility::get_file_name(dirfd), path, "'");
 	}
 
 	return actual::unlinkat(dirfd, path, flags);
