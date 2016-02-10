@@ -10,45 +10,30 @@
 namespace utility {
 
 class Logger {
-	#define FOR_EACH_ARGUMENT(...)\
-	auto&& tmp = { (__VA_ARGS__, 0)... }; (void) tmp;
-
 	public:
 		Logger(const int target_fd):
 			buffer_(target_fd, std::ios::out),
 			stream_(&this->buffer_) { }
 
-		template <typename... Args>
-		void append(const Args&... args) {
-			std::lock_guard<std::mutex> guard(this->write_mutex_);
-
-			FOR_EACH_ARGUMENT(this->stream_ << args);
-
-			this->stream_ << std::endl;
+		template <typename Head>
+		inline void append(Head&& head) {
+			this->stream_ << head << std::endl;
 		}
 
-		// Forward the contents of a given standard output stream to the log target
-		//
-		// While `this->stream_ << stream.rdbuf()` would be more effective it sadly
-		// does not work with `boost::process::pistream` due to a broken pipe error
-		// in conjunction with the required `boost::process::capture_stream` context
-		// flag.
-		//
-		void forward(boost::process::pistream& stream) {
-			std::lock_guard<std::mutex> guard(this->write_mutex_);
+		template <typename Head, typename... Tail>
+		inline void append(Head&& head, Tail&&... tail) {
+			this->stream_ << head;
 
-			this->stream_ << std::string(
-				(std::istreambuf_iterator<char>(stream)),
-				(std::istreambuf_iterator<char>())
-			);
+			this->append(std::forward<Tail>(tail)...);
 		}
+
+		void forward(boost::process::pistream&);
 
 	private:
 		__gnu_cxx::stdio_filebuf<char> buffer_;
 		std::ostream                   stream_;
 		std::mutex                     write_mutex_;
 
-	#undef FOR_EACH_ARGUMENT
 };
 
 }
