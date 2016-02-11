@@ -12,6 +12,16 @@ static std::unique_ptr<utility::FileDescriptorGuard> fd_guard;
 static std::unique_ptr<utility::Logger>              logger;
 static std::unique_ptr<tracking::ChangeTracker>      tracker;
 
+void track_write(const int fd) {
+	if ( fd != *fd_guard && utility::is_regular_file(fd) ) {
+		const std::string file_name{ utility::get_file_name(fd) };
+
+		if ( !tracker->is_tracked(file_name) ) {
+			tracker->track(file_name);
+		}
+	}
+}
+
 void init() __attribute__ ((constructor));
 void init() {
 	if ( getenv("CHANGE_LOG_TARGET") != NULL ) {
@@ -33,25 +43,13 @@ void init() {
 }
 
 ssize_t write(int fd, const void* buffer, size_t count) {
-	if ( fd != *fd_guard && utility::is_regular_file(fd) ) {
-		const std::string file_name{ utility::get_file_name(fd) };
-
-		if ( !tracker->is_tracked(file_name) ) {
-			tracker->track(file_name);
-		}
-	}
+	track_write(fd);
 
 	return actual::write(fd, buffer, count);
 }
 
 ssize_t writev(int fd, const iovec* iov, int iovcnt) {
-	if ( fd != *fd_guard && utility::is_regular_file(fd) ) {
-		const std::string file_name{ utility::get_file_name(fd) };
-
-		if ( !tracker->is_tracked(file_name) ) {
-			tracker->track(file_name);
-		}
-	}
+	track_write(fd);
 
 	return actual::writev(fd, iov, iovcnt);
 }
@@ -91,12 +89,8 @@ int unlinkat(int dirfd, const char* path, int flags) {
 }
 
 void* mmap(void* addr, size_t length, int prot, int flags, int fd, off_t offset) {
-	if ( ( prot & PROT_WRITE ) && utility::is_regular_file(fd) ) {
-		const std::string file_name{ utility::get_file_name(fd) };
-
-		if ( !tracker->is_tracked(file_name) ) {
-			tracker->track(file_name);
-		}
+	if ( prot & PROT_WRITE ) {
+		track_write(fd);
 	}
 
 	return actual::mmap(addr, length, prot, flags, fd, offset);
