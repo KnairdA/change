@@ -30,8 +30,8 @@ boost::process::context getDefaultContext() {
 //   diff -u --label $file_path - $file_path
 //
 std::string getDiffCommand(
-	const std::string& diff_cmd, const std::string& full_path) {
-	return diff_cmd +  " --label " + full_path + " - " + full_path;
+	const std::string& diff_cmd, const std::string& file_path) {
+	return diff_cmd +  " --label " + file_path + " - " + file_path;
 }
 
 }
@@ -74,6 +74,15 @@ bool ChangeTracker::is_tracked(const std::string& file_path) const {
 	) != this->children_.end();
 }
 
+auto ChangeTracker::create_child(const std::string& file_path) {
+	std::lock_guard<std::mutex> guard(this->write_mutex_);
+
+	return this->children_.emplace(
+		boost::filesystem::canonical(file_path).string(),
+		std::make_unique<std::stringstream>()
+	);
+}
+
 // Begins tracking changes to a file reachable by a given path
 //
 // _Tracking_ consists of adding the full file path to the `children_`
@@ -90,18 +99,7 @@ bool ChangeTracker::is_tracked(const std::string& file_path) const {
 // the tracked file is modified after `diff` has been spawned.
 //
 bool ChangeTracker::track(const std::string& file_path) {
-	const std::string full_file_path{
-		boost::filesystem::canonical(file_path).string()
-	};
-
-	std::unique_lock<std::mutex> guard(this->write_mutex_);
-
-	auto result = this->children_.emplace(
-		full_file_path,
-		std::make_unique<std::stringstream>()
-	);
-
-	guard.unlock();
+	auto result = this->create_child(file_path);
 
 	if ( std::get<EMPLACE_SUCCESS>(result) ) {
 		boost::filesystem::ifstream file(

@@ -25,8 +25,12 @@ class ChangeTracker {
 		std::mutex             write_mutex_;
 
 		std::unordered_map<
-			std::string, std::unique_ptr<std::stringstream>
+			std::string,
+			std::unique_ptr<std::stringstream>
 		> children_;
+
+		// threadsafe child emplacement
+		auto create_child(const std::string&);
 
 };
 
