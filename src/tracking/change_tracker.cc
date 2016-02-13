@@ -1,6 +1,6 @@
 #include "change_tracker.h"
 
-#include <boost/optional.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 
 namespace {
@@ -68,6 +68,11 @@ ChangeTracker::~ChangeTracker() {
 	}
 }
 
+// Both `is_tracked` and `create_child` may throw filesystem exceptions
+// if the given path doesn't exist. We are able to disregard this as
+// both functions are only and should only be called when existance is
+// guaranteed. If this is not the case we want the library to fail visibly.
+
 bool ChangeTracker::is_tracked(const std::string& file_path) const {
 	return this->children_.find(
 		boost::filesystem::canonical(file_path).string()
@@ -102,13 +107,20 @@ bool ChangeTracker::track(const std::string& file_path) {
 	auto result = this->create_child(file_path);
 
 	if ( std::get<EMPLACE_SUCCESS>(result) ) {
-		boost::filesystem::ifstream file(
-			std::get<FILE_PATH>(*result.first)
-		);
+		try {
+			boost::filesystem::ifstream file(
+				std::get<FILE_PATH>(*result.first)
+			);
 
-		if ( file.is_open() ) {
-			*std::get<FILE_CONTENT>(*result.first) << file.rdbuf();
-			std::get<FILE_CONTENT>(*result.first)->sync();
+			if ( file.is_open() ) {
+				*std::get<FILE_CONTENT>(*result.first) << file.rdbuf();
+				std::get<FILE_CONTENT>(*result.first)->sync();
+			}
+		} catch ( boost::filesystem::filesystem_error& ) {
+			// we catch this exception in case the parent process is
+			// performing system calls that are allowed to fail - e.g.
+			// in this instance writing to files that we are not allowed
+			// to read. 
 		}
 
 		return true;
