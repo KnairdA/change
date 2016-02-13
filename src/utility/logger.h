@@ -15,24 +15,31 @@ class Logger {
 			buffer_(target_fd, std::ios::out),
 			stream_(&this->buffer_) { }
 
-		template <typename Head>
-		inline void append(Head&& head) {
-			this->stream_ << head << std::endl;
-		}
-
-		template <typename Head, typename... Tail>
-		inline void append(Head&& head, Tail&&... tail) {
-			this->stream_ << head;
-
-			this->append(std::forward<Tail>(tail)...);
-		}
-
 		void forward(boost::process::pistream&);
+
+		template <typename... Arguments>
+		void append(Arguments&&... args) {
+			std::lock_guard<std::mutex> guard(this->write_mutex_);
+
+			this->append_to_stream(std::forward<Arguments>(args)...);
+		}
 
 	private:
 		__gnu_cxx::stdio_filebuf<char> buffer_;
 		std::ostream                   stream_;
 		std::mutex                     write_mutex_;
+
+		template <typename Head>
+		inline void append_to_stream(Head&& head) {
+			this->stream_ << head << std::endl;
+		}
+
+		template <typename Head, typename... Tail>
+		inline void append_to_stream(Head&& head, Tail&&... tail) {
+			this->stream_ << head;
+
+			this->append_to_stream(std::forward<Tail>(tail)...);
+		}
 
 };
 

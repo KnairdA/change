@@ -1,7 +1,3 @@
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include "actual_function.h"
 
 #include "utility/io.h"
@@ -83,6 +79,14 @@ ssize_t writev(int fd, const iovec* iov, int iovcnt) {
 	return actual::writev(fd, iov, iovcnt);
 }
 
+void* mmap(void* addr, size_t length, int prot, int flags, int fd, off_t offset) {
+	if ( prot & PROT_WRITE ) {
+		track_write(fd);
+	}
+
+	return actual::mmap(addr, length, prot, flags, fd, offset);
+}
+
 int rename(const char* old_path, const char* new_path) {
 	track_rename(old_path, new_path);
 
@@ -109,12 +113,4 @@ int unlinkat(int dirfd, const char* path, int flags) {
 	}
 
 	return actual::unlinkat(dirfd, path, flags);
-}
-
-void* mmap(void* addr, size_t length, int prot, int flags, int fd, off_t offset) {
-	if ( prot & PROT_WRITE ) {
-		track_write(fd);
-	}
-
-	return actual::mmap(addr, length, prot, flags, fd, offset);
 }
