@@ -33,7 +33,7 @@ class FileDescriptorGuard {
 
 };
 
-std::string get_file_name(int fd) {
+std::string get_file_path(int fd) {
 	char proc_link[20];
 	char file_name[256];
 

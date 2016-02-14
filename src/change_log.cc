@@ -42,20 +42,14 @@ void init() {
 
 inline void track_write(const int fd) {
 	if ( enabled && fd != *fd_guard && utility::is_regular_file(fd) ) {
-		const std::string file_name{ utility::get_file_name(fd) };
-
-		if ( !tracker->is_tracked(file_name) ) {
-			tracker->track(file_name);
-		}
+		tracker->track(utility::get_file_path(fd));
 	}
 }
 
 inline void track_rename(
 	const std::string& old_path, const std::string& new_path) {
 	if ( enabled ) {
-		if ( !tracker->is_tracked(old_path) ) {
-			tracker->track(old_path);
-		}
+		tracker->track(old_path);
 
 		logger->append("renamed '", old_path, "' to '", new_path, "'");
 	}
@@ -109,7 +103,7 @@ int unlinkat(int dirfd, const char* path, int flags) {
 	if ( dirfd == AT_FDCWD ) {
 		track_remove(path);
 	} else {
-		track_remove(utility::get_file_name(dirfd) + path);
+		track_remove(utility::get_file_path(dirfd) + path);
 	}
 
 	return actual::unlinkat(dirfd, path, flags);

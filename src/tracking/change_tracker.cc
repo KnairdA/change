@@ -34,6 +34,25 @@ std::string getDiffCommand(
 	return diff_cmd +  " --label " + file_path + " - " + file_path;
 }
 
+void read_file_to_stream(
+	const boost::filesystem::path& file_path,
+	std::stringstream* const       stream
+) {
+	try {
+		boost::filesystem::ifstream file(file_path);
+
+		if ( file.is_open() ) {
+			*stream << file.rdbuf();
+			stream->sync();
+		}
+	} catch ( boost::filesystem::filesystem_error& ) {
+		// we catch this exception in case the parent process is
+		// performing system calls that are allowed to fail - e.g.
+		// in this instance writing to files that we are not allowed
+		// to read.
+	}
+}
+
 }
 
 namespace tracking {
@@ -68,64 +87,48 @@ ChangeTracker::~ChangeTracker() {
 	}
 }
 
-// Both `is_tracked` and `create_child` may throw filesystem exceptions
-// if the given path doesn't exist. We are able to disregard this as
-// both functions are only and should only be called when existance is
-// guaranteed. If this is not the case we want the library to fail visibly.
-
-bool ChangeTracker::is_tracked(const std::string& file_path) const {
-	return this->children_.find(
-		boost::filesystem::canonical(file_path).string()
-	) != this->children_.end();
+bool ChangeTracker::is_tracked(const boost::filesystem::path& file_path) const {
+	return this->children_.find(file_path.string()) != this->children_.end();
 }
 
-auto ChangeTracker::create_child(const std::string& file_path) {
+auto ChangeTracker::create_child(const boost::filesystem::path& file_path) {
 	std::lock_guard<std::mutex> guard(this->write_mutex_);
 
 	return this->children_.emplace(
-		boost::filesystem::canonical(file_path).string(),
+		file_path.string(),
 		std::make_unique<std::stringstream>()
 	);
 }
 
-// Begins tracking changes to a file reachable by a given path
+// _Tracking_ consists of adding the full file path to the `children_` map and
+// reading the full pre-change file contents into the mapped `std::stringstream`
+// instance.
 //
-// _Tracking_ consists of adding the full file path to the `children_`
-// map and reading the full pre-change file contents into the mapped
-// `std::stringstream` instance.
+// This seems to be the most workable of various tested approaches to providing
+// `diff` with proper input in all circumstances. Leaving the intermediate
+// preservation of the original file content to `diff` sadly failed randomly as
+// it is _too intelligent_ in actually reading the file from permanent storage.
+// e.g. it opens all relevant file descriptors at launch and only reads the
+// first block of the file contents until more is required. This leads to problems
+// when the tracked file is modified after `diff` has been spawned.
 //
-// This seems to be the most workable of various tested approaches
-// to providing `diff` with proper input in all circumstances. Leaving
-// the intermediate preservation of the original file content to
-// `diff` sadly failed randomly as it is _too intelligent_ in actually
-// reading the file from permanent storage. e.g. it opens all relevant
-// file descriptors at launch and only reads the first block of the
-// file contents until more is required. This leads to problems when
-// the tracked file is modified after `diff` has been spawned.
-//
-bool ChangeTracker::track(const std::string& file_path) {
-	auto result = this->create_child(file_path);
+void ChangeTracker::track(const std::string& file_path) {
+	// May throw filesystem exceptions if the given path doesn't exist. We are
+	// able to disregard this as this function should only be called when
+	// existance is guaranteed. If this is not the case we want the library to
+	// fail visibly.
+	//
+	const auto full_path = boost::filesystem::canonical(file_path);
 
-	if ( std::get<EMPLACE_SUCCESS>(result) ) {
-		try {
-			boost::filesystem::ifstream file(
-				std::get<FILE_PATH>(*result.first)
+	if ( !this->is_tracked(full_path) ) {
+		auto result = this->create_child(full_path);
+
+		if ( std::get<EMPLACE_SUCCESS>(result) ) {
+			read_file_to_stream(
+				full_path, 
+				std::get<FILE_CONTENT>(*result.first).get()
 			);
-
-			if ( file.is_open() ) {
-				*std::get<FILE_CONTENT>(*result.first) << file.rdbuf();
-				std::get<FILE_CONTENT>(*result.first)->sync();
-			}
-		} catch ( boost::filesystem::filesystem_error& ) {
-			// we catch this exception in case the parent process is
-			// performing system calls that are allowed to fail - e.g.
-			// in this instance writing to files that we are not allowed
-			// to read. 
 		}
-
-		return true;
-	} else {
-		return false;
 	}
 }
 

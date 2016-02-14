@@ -15,9 +15,8 @@ class ChangeTracker {
 		ChangeTracker(utility::Logger*);
 		~ChangeTracker();
 
-		bool is_tracked(const std::string&) const;
-
-		bool track(const std::string&);
+		// Begin tracking changes to a given path if not already covered.
+		void track(const std::string&);
 
 	private:
 		const std::string      diff_cmd_;
@@ -29,8 +28,10 @@ class ChangeTracker {
 			std::unique_ptr<std::stringstream>
 		> children_;
 
+		bool is_tracked(const boost::filesystem::path&) const;
+
 		// threadsafe child emplacement
-		auto create_child(const std::string&);
+		auto create_child(const boost::filesystem::path&);
 
 };
 
