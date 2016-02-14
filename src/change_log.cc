@@ -2,6 +2,7 @@
 
 #include "utility/io.h"
 #include "utility/logger.h"
+#include "tracking/path_matcher.h"
 #include "tracking/change_tracker.h"
 
 // `true`  signals the interposed functions to execute tracking logic
@@ -10,6 +11,7 @@ static bool enabled = false;
 
 static std::unique_ptr<utility::FileDescriptorGuard> fd_guard;
 static std::unique_ptr<utility::Logger>              logger;
+static std::unique_ptr<tracking::PathMatcher>        matcher;
 static std::unique_ptr<tracking::ChangeTracker>      tracker;
 
 void init() __attribute__ ((constructor));
@@ -31,6 +33,14 @@ void init() {
 		tracker = std::make_unique<tracking::ChangeTracker>(logger.get());
 	}
 
+	if ( getenv("CHANGE_LOG_IGNORE_PATTERN_PATH") != NULL ) {
+		matcher = std::make_unique<tracking::PathMatcher>(
+			getenv("CHANGE_LOG_IGNORE_PATTERN_PATH")
+		);
+	} else {
+		matcher = std::make_unique<tracking::PathMatcher>();
+	}
+
 	// tracking is only enabled when everything is initialized as both
 	// the actual tracking and the decision if a event should be tracked
 	// depend on `logger` and `tracker` being fully instantiated.
@@ -42,22 +52,32 @@ void init() {
 
 inline void track_write(const int fd) {
 	if ( enabled && fd != *fd_guard && utility::is_regular_file(fd) ) {
-		tracker->track(utility::get_file_path(fd));
+		const auto path = utility::get_file_path(fd);
+
+		if ( !matcher->isMatching(path) ) {
+			tracker->track(path);
+		}
 	}
 }
 
 inline void track_rename(
 	const std::string& old_path, const std::string& new_path) {
 	if ( enabled ) {
-		tracker->track(old_path);
+		if ( !matcher->isMatching(old_path) ) {
+			tracker->track(old_path);
 
-		logger->append("renamed '", old_path, "' to '", new_path, "'");
+			if ( !matcher->isMatching(new_path) ) {
+				logger->append("renamed '", old_path, "' to '", new_path, "'");
+			}
+		}
 	}
 }
 
 inline void track_remove(const std::string& path) {
 	if ( enabled && utility::is_regular_file(path.c_str()) ) {
-		logger->append("removed '", path, "'");
+		if ( !matcher->isMatching(path) ) {
+			logger->append("removed '", path, "'");
+		}
 	}
 }
 

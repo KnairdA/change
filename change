@@ -1,6 +1,7 @@
 #!/usr/bin/bash
 
 export CHANGE_LOG_TARGET="/tmp/$(basename $0).$$.tmp"
+export CHANGE_LOG_IGNORE_PATTERN_PATH=".change_log_ignore"
 
 LD_PRELOAD=libChangeLog.so eval "$@"
 

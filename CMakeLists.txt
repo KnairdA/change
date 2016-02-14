@@ -15,6 +15,7 @@ add_library(
 	SHARED
 	src/change_log.cc
 	src/utility/logger.cc
+	src/tracking/path_matcher.cc
 	src/tracking/change_tracker.cc
 )
 

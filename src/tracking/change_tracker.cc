@@ -125,7 +125,7 @@ void ChangeTracker::track(const std::string& file_path) {
 
 		if ( std::get<EMPLACE_SUCCESS>(result) ) {
 			read_file_to_stream(
-				full_path, 
+				full_path,
 				std::get<FILE_CONTENT>(*result.first).get()
 			);
 		}
