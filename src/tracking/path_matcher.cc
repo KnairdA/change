@@ -15,9 +15,11 @@ PathMatcher::PathMatcher(const std::string& source_file_path) {
 			std::string current_line;
 
 			while ( std::getline(file, current_line) ) {
-				try {
-					this->patterns_.emplace_back(current_line);
-				} catch ( const std::regex_error& ) { }
+				if ( current_line[0] != '#' ) { // i.e. not a comment
+					try {
+						this->patterns_.emplace_back(current_line);
+					} catch ( const std::regex_error& ) { }
+				}
 			}
 		}
 	} catch ( boost::filesystem::filesystem_error& ) {
