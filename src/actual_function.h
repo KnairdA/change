@@ -14,15 +14,17 @@
 
 namespace {
 	template <class Result, typename... Arguments>
-	std::function<Result(Arguments...)> get_actual_function(
+	using function_ptr = Result(*)(Arguments...);
+
+	template <class Result, typename... Arguments>
+	function_ptr<Result, Arguments...> get_actual_function(
 		const std::string& symbol_name) {
+		const void* symbol_address{ dlsym(RTLD_NEXT, symbol_name.c_str()) };
 
-		Result (*real_function)(Arguments...) = nullptr;
-		const void* symbol_address = dlsym(RTLD_NEXT, symbol_name.c_str());
+		function_ptr<Result, Arguments...> actual_function{};
+		std::memcpy(&actual_function, &symbol_address, sizeof(symbol_address));
 
-		std::memcpy(&real_function, &symbol_address, sizeof(symbol_address));
-
-		return std::function<Result(Arguments...)>(real_function);
+		return actual_function;
 	}
 }
 
