@@ -12,49 +12,21 @@
 #include <memory>
 #include <cstring>
 
-namespace {
-	template <class Result, typename... Arguments>
-	using function_ptr = Result(*)(Arguments...);
+namespace actual {
 
-	template <typename FunctionPtr>
-	FunctionPtr get_actual_function(const std::string& symbol_name) {
-		const void* symbol_address{ dlsym(RTLD_NEXT, symbol_name.c_str()) };
+template <class Result, typename... Arguments>
+using ptr = Result(*)(Arguments...);
 
-		FunctionPtr actual_function{};
-		std::memcpy(&actual_function, &symbol_address, sizeof(symbol_address));
+template <typename FunctionPtr>
+FunctionPtr get_ptr(const std::string& symbol_name) {
+	const void* symbol_address{ dlsym(RTLD_NEXT, symbol_name.c_str()) };
 
-		return actual_function;
-	}
+	FunctionPtr actual_function{};
+	std::memcpy(&actual_function, &symbol_address, sizeof(symbol_address));
+
+	return actual_function;
 }
 
-namespace actual {
-	static auto write = get_actual_function<
-		function_ptr<ssize_t, int, const void*, size_t>
-	>("write");
-
-	static auto writev = get_actual_function<
-		function_ptr<ssize_t, int, const iovec*, int>
-	>("writev");
-
-	static auto rename = get_actual_function<
-		function_ptr<int, const char*, const char*>
-	>("rename");
-
-	static auto rmdir = get_actual_function<
-		function_ptr<int, const char*>
-	>("rmdir");
-
-	static auto unlink = get_actual_function<
-		function_ptr<int, const char*>
-	>("unlink");
-
-	static auto unlinkat = get_actual_function<
-		function_ptr<int, int, const char*, int>
-	>("unlinkat");
-
-	static auto mmap = get_actual_function<
-		function_ptr<void*, void*, size_t, int, int, int, off_t>
-	>("mmap");
 }
 
 #endif  // CHANGE_SRC_ACTUAL_FUNCTION_H_

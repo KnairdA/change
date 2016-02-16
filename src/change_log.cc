@@ -1,4 +1,4 @@
-#include "actual_function.h"
+#include "actual.h"
 
 #include "utility/io.h"
 #include "utility/logger.h"
@@ -82,49 +82,91 @@ inline void track_remove(const std::string& path) {
 }
 
 ssize_t write(int fd, const void* buffer, size_t count) {
+	static actual::ptr<ssize_t, int, const void*, size_t> actual_write{};
+
+	if ( !actual_write ) {
+		actual_write = actual::get_ptr<decltype(actual_write)>("write");
+	}
+
 	track_write(fd);
 
-	return actual::write(fd, buffer, count);
+	return actual_write(fd, buffer, count);
 }
 
 ssize_t writev(int fd, const iovec* iov, int iovcnt) {
+	static actual::ptr<ssize_t, int, const iovec*, int> actual_writev{};
+
+	if ( !actual_writev ) {
+		actual_writev = actual::get_ptr<decltype(actual_writev)>("writev");
+	}
+
 	track_write(fd);
 
-	return actual::writev(fd, iov, iovcnt);
+	return actual_writev(fd, iov, iovcnt);
 }
 
 void* mmap(void* addr, size_t length, int prot, int flags, int fd, off_t offset) {
+	static actual::ptr<void*, void*, size_t, int, int, int, off_t> actual_mmap{};
+
+	if ( !actual_mmap ) {
+		actual_mmap = actual::get_ptr<decltype(actual_mmap)>("mmap");
+	}
+
 	if ( prot & PROT_WRITE ) {
 		track_write(fd);
 	}
 
-	return actual::mmap(addr, length, prot, flags, fd, offset);
+	return actual_mmap(addr, length, prot, flags, fd, offset);
 }
 
 int rename(const char* old_path, const char* new_path) {
+	static actual::ptr<int, const char*, const char*> actual_rename{};
+
+	if ( !actual_rename ) {
+		actual_rename = actual::get_ptr<decltype(actual_rename)>("rename");
+	}
+
 	track_rename(old_path, new_path);
 
-	return actual::rename(old_path, new_path);
+	return actual_rename(old_path, new_path);
 }
 
 int rmdir(const char* path) {
+	static actual::ptr<int, const char*> actual_rmdir{};
+
+	if ( !actual_rmdir ) {
+		actual_rmdir = actual::get_ptr<decltype(actual_rmdir)>("rmdir");
+	}
+
 	track_remove(path);
 
-	return actual::rmdir(path);
+	return actual_rmdir(path);
 }
 
 int unlink(const char* path) {
+	static actual::ptr<int, const char*> actual_unlink{};
+
+	if ( !actual_unlink ) {
+		actual_unlink = actual::get_ptr<decltype(actual_unlink)>("unlink");
+	}
+
 	track_remove(path);
 
-	return actual::unlink(path);
+	return actual_unlink(path);
 }
 
 int unlinkat(int dirfd, const char* path, int flags) {
+	static actual::ptr<int, int, const char*, int> actual_unlinkat{};
+
+	if ( !actual_unlinkat ) {
+		actual_unlinkat = actual::get_ptr<decltype(actual_unlinkat)>("unlinkat");
+	}
+
 	if ( dirfd == AT_FDCWD ) {
 		track_remove(path);
 	} else {
 		track_remove(utility::get_file_path(dirfd) + path);
 	}
 
-	return actual::unlinkat(dirfd, path, flags);
+	return actual_unlinkat(dirfd, path, flags);
 }
