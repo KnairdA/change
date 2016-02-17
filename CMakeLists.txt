@@ -13,7 +13,8 @@ include_directories(
 add_library(
 	ChangeLog
 	SHARED
-	src/change_log.cc
+	src/main.cc
+	src/bootstrap.cc
 	src/init/alloc.cc
 	src/utility/logger.cc
 	src/tracking/path_matcher.cc
