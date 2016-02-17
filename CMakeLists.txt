@@ -16,6 +16,7 @@ add_library(
 	src/main.cc
 	src/bootstrap.cc
 	src/init/alloc.cc
+	src/utility/io.cc
 	src/utility/logger.cc
 	src/tracking/path_matcher.cc
 	src/tracking/change_tracker.cc
