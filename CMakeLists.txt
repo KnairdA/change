@@ -14,6 +14,7 @@ add_library(
 	ChangeLog
 	SHARED
 	src/change_log.cc
+	src/init/alloc.cc
 	src/utility/logger.cc
 	src/tracking/path_matcher.cc
 	src/tracking/change_tracker.cc

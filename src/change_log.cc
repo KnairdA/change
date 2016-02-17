@@ -1,5 +1,6 @@
 #include "actual.h"
 
+#include "init/alloc.h"
 #include "utility/io.h"
 #include "utility/logger.h"
 #include "tracking/path_matcher.h"
@@ -14,8 +15,8 @@ static std::unique_ptr<utility::Logger>              logger;
 static std::unique_ptr<tracking::PathMatcher>        matcher;
 static std::unique_ptr<tracking::ChangeTracker>      tracker;
 
-void init() __attribute__ ((constructor));
-void init() {
+void initialize() __attribute__ ((constructor));
+void initialize() {
 	if ( getenv("CHANGE_LOG_TARGET") != NULL ) {
 		fd_guard = std::make_unique<utility::FileDescriptorGuard>(
 			getenv("CHANGE_LOG_TARGET")
@@ -78,6 +79,46 @@ inline void track_remove(const std::string& path) {
 		if ( !matcher->isMatching(path) ) {
 			logger->append("removed '", path, "'");
 		}
+	}
+}
+
+void free(void* ptr) {
+	static actual::ptr<void, void*> actual_free{};
+
+	if ( !actual_free ) {
+		actual_free = actual::get_ptr<decltype(actual_free)>("free");
+	}
+
+	if ( !init::from_static_buffer(ptr) ) {
+		actual_free(ptr);
+	}
+}
+
+void* malloc(size_t size) {
+	static actual::ptr<void*, size_t> actual_malloc{};
+
+	if ( init::dlsymContext::is_active() ) {
+		return init::static_malloc(size);
+	} else {
+		if ( !actual_malloc ) {
+			actual_malloc = actual::get_ptr<decltype(actual_malloc)>("malloc");
+		}
+
+		return actual_malloc(size);
+	}
+}
+
+void* calloc(size_t block, size_t size) {
+	static actual::ptr<void*, size_t, size_t> actual_calloc{};
+
+	if ( init::dlsymContext::is_active() ) {
+		return init::static_calloc(block, size);
+	} else {
+		if ( !actual_calloc ) {
+			actual_calloc = actual::get_ptr<decltype(actual_calloc)>("calloc");
+		}
+
+		return actual_calloc(block, size);
 	}
 }
 
