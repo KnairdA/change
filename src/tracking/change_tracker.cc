@@ -10,7 +10,7 @@ constexpr unsigned int EMPLACE_SUCCESS = 1;
 constexpr unsigned int FILE_PATH       = 0;
 constexpr unsigned int FILE_CONTENT    = 1;
 
-boost::process::context getDefaultContext() {
+boost::process::context get_default_context() {
 	boost::process::context context;
 
 	context.environment     = boost::process::self::get_environment();
@@ -29,7 +29,7 @@ boost::process::context getDefaultContext() {
 //
 //   diff -u --label $file_path - $file_path
 //
-std::string getDiffCommand(
+std::string get_diff_command(
 	const std::string& diff_cmd, const std::string& file_path) {
 	return diff_cmd +  " --label " + file_path + " - " + file_path;
 }
@@ -72,8 +72,8 @@ ChangeTracker::~ChangeTracker() {
 		if ( boost::filesystem::exists(tracked_path) ) {
 			boost::process::child diffProcess{
 				boost::process::launch_shell(
-					getDiffCommand(this->diff_cmd_, tracked_path),
-					getDefaultContext()
+					get_diff_command(this->diff_cmd_, tracked_path),
+					get_default_context()
 				)
 			};
 

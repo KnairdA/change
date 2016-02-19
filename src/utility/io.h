@@ -10,7 +10,7 @@ class FileDescriptorGuard {
 		FileDescriptorGuard(const std::string& path);
 		~FileDescriptorGuard();
 
-		operator int();
+		operator int() const;
 
 	private:
 		int fd_;

@@ -19,7 +19,7 @@ FileDescriptorGuard::~FileDescriptorGuard() {
 	close(this->fd_);
 }
 
-FileDescriptorGuard::operator int() {
+FileDescriptorGuard::operator int() const {
 	return this->fd_;
 }
 
