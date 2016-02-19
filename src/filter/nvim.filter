@@ -1,0 +1,8 @@
+# vim's way of verifying that it is able to create a file
+[0-9]+
+# temporary backup file during write
+[^~]*~
+# log and backup files
+.*\.viminfo
+.*\.sw[px]
+.*\.local\/share\/nvim\/shada\/.*
