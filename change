@@ -1,7 +1,9 @@
 #!/usr/bin/bash
 
+readonly FILTER_PATH="/usr/local/share/libChangeLog/filter"
+
 export CHANGE_LOG_TARGET="/tmp/$(basename $0).$$.tmp"
-export CHANGE_LOG_IGNORE_PATTERN_PATH=".change_log_ignore"
+export CHANGE_LOG_IGNORE_PATTERN_PATH="$FILTER_PATH/$(basename $1).filter"
 
 LD_PRELOAD=libChangeLog.so eval "$@"
 

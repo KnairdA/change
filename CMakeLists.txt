@@ -13,31 +13,52 @@ include_directories(
 add_library(
 	ChangeLog
 	SHARED
-	src/main.cc
-	src/bootstrap.cc
-	src/init/alloc.cc
-	src/utility/io.cc
-	src/utility/logger.cc
-	src/tracking/path_matcher.cc
-	src/tracking/change_tracker.cc
+		src/main.cc
+		src/bootstrap.cc
+		src/init/alloc.cc
+		src/utility/io.cc
+		src/utility/logger.cc
+		src/tracking/path_matcher.cc
+		src/tracking/change_tracker.cc
 )
 
 target_link_libraries(
 	ChangeLog
-	boost_system
-	boost_filesystem
+		boost_system
+		boost_filesystem
 )
 
 install(
 	PROGRAMS
-	change
+		change
 	DESTINATION
-	bin
+		bin
 )
 
 install(
 	TARGETS
-	ChangeLog
+		ChangeLog
 	LIBRARY DESTINATION
-	lib
+		lib
+)
+
+install(
+	DIRECTORY DESTINATION
+		share/libChangeLog
+	DIRECTORY_PERMISSIONS
+		OWNER_READ OWNER_WRITE OWNER_EXECUTE
+		GROUP_READ GROUP_EXECUTE
+		WORLD_READ WORLD_EXECUTE
+)
+
+install(
+	DIRECTORY
+		src/filter
+	DESTINATION
+		share/libChangeLog
+	FILE_PERMISSIONS
+		OWNER_READ OWNER_WRITE
+		GROUP_READ WORLD_READ
+	PATTERN
+		"filter/*.filter"
 )
