@@ -1,7 +1,7 @@
 #include "change_tracker.h"
 
+#include <boost/process.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/filesystem/fstream.hpp>
 
 namespace {
 

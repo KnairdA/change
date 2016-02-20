@@ -2,6 +2,8 @@
 
 #include "init/alloc.h"
 
+extern "C" {
+
 void free(void* ptr) {
 	static actual::ptr<void, void*> actual_free{};
 
@@ -40,4 +42,6 @@ void* calloc(size_t block, size_t size) {
 
 		return actual_calloc(block, size);
 	}
+}
+
 }

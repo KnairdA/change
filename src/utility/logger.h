@@ -5,7 +5,8 @@
 
 #include <ext/stdio_filebuf.h>
 
-#include <boost/process.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/process/pistream.hpp>
 
 namespace utility {
 

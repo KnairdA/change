@@ -1,3 +1,7 @@
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/uio.h>
+
 #include "actual.h"
 
 #include "utility/io.h"
@@ -61,6 +65,14 @@ inline void track_write(const int fd) {
 	}
 }
 
+inline void track_write(const std::string& path) {
+	if ( enabled && utility::is_regular_file(path.c_str()) ) {
+		if ( !matcher->isMatching(path) ) {
+			tracker->track(path);
+		}
+	}
+}
+
 inline void track_rename(
 	const std::string& old_path, const std::string& new_path) {
 	if ( enabled ) {
@@ -80,6 +92,28 @@ inline void track_remove(const std::string& path) {
 			logger->append("removed '", path, "'");
 		}
 	}
+}
+
+extern "C" {
+
+int open(const char* path, int flags, mode_t mode) {
+	static actual::ptr<int, const char*, int, mode_t> actual_open{};
+
+	if ( !actual_open ) {
+		actual_open = actual::get_ptr<decltype(actual_open)>("open");
+	}
+
+	// `open` may reset the file contents when used with the `O_TRUNC` flag.
+	// e.g. this is how _emacs_ clears the file content prior to writing the
+	// new content.
+	// Normally `O_TRUNC` is defined in `fcntl.h` which we can not include
+	// as it defines the very c-function we are currently _overriding_.
+	//
+	if ( flags & 01000 ) {
+		track_write(path);
+	}
+
+	return actual_open(path, flags, mode);
 }
 
 ssize_t write(int fd, const void* buffer, size_t count) {
@@ -163,11 +197,16 @@ int unlinkat(int dirfd, const char* path, int flags) {
 		actual_unlinkat = actual::get_ptr<decltype(actual_unlinkat)>("unlinkat");
 	}
 
-	if ( dirfd == AT_FDCWD ) {
+	// Normally `AT_FDCWD` is defined in `fcntl.h` which we can not include
+	// as it defines `open` which this library also aims to override.
+	//
+	if ( dirfd == -100 ) {
 		track_remove(path);
 	} else {
 		track_remove(utility::get_file_path(dirfd) + path);
 	}
 
 	return actual_unlinkat(dirfd, path, flags);
+}
+
 }

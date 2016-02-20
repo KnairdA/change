@@ -6,9 +6,6 @@
 #endif
 
 #include <dlfcn.h>
-#include <sys/mman.h>
-#include <sys/uio.h>
-
 #include <memory>
 #include <cstring>
 
