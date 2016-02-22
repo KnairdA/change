@@ -3,7 +3,7 @@ project(ChangeLog)
 
 set(
 	CMAKE_CXX_FLAGS
-	"${CMAKE_CXX_FLAGS} -std=c++14 -W -Wall -Wextra -Winline -ldl -fPIC"
+	"${CMAKE_CXX_FLAGS} -std=c++14 -W -Wall -Wextra -Winline -fPIC"
 )
 
 include_directories(
@@ -24,6 +24,7 @@ add_library(
 
 target_link_libraries(
 	ChangeLog
+		dl
 		boost_system
 		boost_filesystem
 )
