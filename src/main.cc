@@ -59,7 +59,7 @@ inline void track_write(const int fd) {
 	if ( enabled && fd != *fd_guard && utility::is_regular_file(fd) ) {
 		const auto path = utility::get_file_path(fd);
 
-		if ( !matcher->isMatching(path) ) {
+		if ( !matcher->is_matching(path) ) {
 			tracker->track(path);
 		}
 	}
@@ -67,7 +67,7 @@ inline void track_write(const int fd) {
 
 inline void track_write(const std::string& path) {
 	if ( enabled && utility::is_regular_file(path.c_str()) ) {
-		if ( !matcher->isMatching(path) ) {
+		if ( !matcher->is_matching(path) ) {
 			tracker->track(path);
 		}
 	}
@@ -76,10 +76,10 @@ inline void track_write(const std::string& path) {
 inline void track_rename(
 	const std::string& old_path, const std::string& new_path) {
 	if ( enabled ) {
-		if ( !matcher->isMatching(old_path) ) {
+		if ( !matcher->is_matching(old_path) ) {
 			tracker->track(old_path);
 
-			if ( !matcher->isMatching(new_path) ) {
+			if ( !matcher->is_matching(new_path) ) {
 				logger->append("renamed '", old_path, "' to '", new_path, "'");
 			}
 		}
@@ -88,7 +88,7 @@ inline void track_rename(
 
 inline void track_remove(const std::string& path) {
 	if ( enabled && utility::is_regular_file(path.c_str()) ) {
-		if ( !matcher->isMatching(path) ) {
+		if ( !matcher->is_matching(path) ) {
 			logger->append("removed '", path, "'");
 		}
 	}

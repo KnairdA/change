@@ -28,7 +28,7 @@ PathMatcher::PathMatcher(const std::string& source_file_path) {
 	}
 }
 
-bool PathMatcher::isMatching(const std::string& candidate) const {
+bool PathMatcher::is_matching(const std::string& candidate) const {
 	return std::any_of(
 		this->patterns_.begin(),
 		this->patterns_.end(),

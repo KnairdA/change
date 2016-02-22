@@ -11,7 +11,7 @@ class PathMatcher {
 		PathMatcher() = default;
 		PathMatcher(const std::string&);
 
-		bool isMatching(const std::string&) const;
+		bool is_matching(const std::string&) const;
 
 	private:
 		std::vector<std::regex> patterns_;
