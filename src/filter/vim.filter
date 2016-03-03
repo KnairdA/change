@@ -1,7 +1,7 @@
 # vim's way of verifying that it is able to create a file
-[0-9]+
+.*[0-9]{4}
 # temporary backup file during write
 [^~]*~
 # log and backup files
 .*\.viminfo
-.*\.sw[px]
+.*\.sw[a-z]
