@@ -7,5 +7,10 @@ export CHANGE_LOG_IGNORE_PATTERN_PATH="$FILTER_PATH/$(basename $1).filter"
 
 LD_PRELOAD=libChangeLog.so eval "$@"
 
-cat $CHANGE_LOG_TARGET
-rm -f $CHANGE_LOG_TARGET
+if [ -e $CHANGE_LOG_TARGET ]
+then
+	cat $CHANGE_LOG_TARGET
+	rm -f $CHANGE_LOG_TARGET
+else
+	false
+fi
