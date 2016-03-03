@@ -1,13 +1,24 @@
 #!/usr/bin/bash
 
+source ~/.bashrc
+
 readonly FILTER_PATH="/usr/local/share/libChangeLog/filter"
 
+if [[ $(mimedb $1) == application* ]]
+then
+	readonly EDITOR_NAME=$(basename $1)
+	readonly EDITOR_CMD="$@"
+else
+	readonly EDITOR_NAME=$(basename $EDITOR)
+	readonly EDITOR_CMD="$EDITOR $@"
+fi
+
 export CHANGE_LOG_TARGET="/tmp/$(basename $0).$$.tmp"
-export CHANGE_LOG_IGNORE_PATTERN_PATH="$FILTER_PATH/$(basename $1).filter"
+export CHANGE_LOG_IGNORE_PATTERN_PATH="$FILTER_PATH/$EDITOR_NAME.filter"
 
-LD_PRELOAD=libChangeLog.so eval "$@"
+LD_PRELOAD=libChangeLog.so eval "$EDITOR_CMD"
 
-if [ -e $CHANGE_LOG_TARGET ]
+if [[ -e $CHANGE_LOG_TARGET ]]
 then
 	cat $CHANGE_LOG_TARGET
 	rm -f $CHANGE_LOG_TARGET
